@@ -2,69 +2,38 @@
 
 Conventions for humans and coding agents across Parcosm projects. This file lives in the **`common`** repo and describes patterns repeated in per-project `AGENTS.md` files (e.g. `openfigi`, `databento`). Each application repo should keep a short local `AGENTS.md` for project-specific table prefixes, modules, and cron — and link here for shared rules.
 
-## Configuration Files
 
-### Read conf with `CastedDict` 
+### Ingestors/ Downloaders ####
 
-- Load **all** project config through `CastedDict` (`lib/casted_dict.py` from `common` once migrated), never ad-hoc line parsing in application code.
-- Each project should expose a small path helper that resolves conf relative to the repo root and merges **`.local`** automatically:
-  - `openfigi._paths.load_conf("db_credentials.conf")` → `conf/<name>`
-  - `databento` / others: `lib/conf_paths.load_conf("conf/….conf")`
-- Prefer absolute paths from the helper so scripts work regardless of cwd.
+Ingestors/Downloaders are modules that proactively download some data
 
-```python
-from lib.casted_dict import CastedDict
+1. When possible, ingestors should save downloaded files onto their own folder in /data2/parcosm
+2. Ingestors' files should follow roughly ingestor-YYYY-MM-DD-filename.xxx format
+2a. For multiple files per day ingestors use the structure ingestor_name/year/year-month/year-month-day/files-for-the-day
+2b. for single file per day ingestors use ingestor_name/year
 
-# After migration: from lib.casted_dict import CastedDict  # via cursor-common dep
-conf = CastedDict("/abs/path/to/project/conf/db_credentials.conf")
-schema = conf["schema"]
-```
+3. Ingestors should be designed to restart safely, for example, if files for the day are found, skip them. 
+4. Ingestors may populate databases either at the very end of their process or simmultaneously with each download
+5. Ingestors may populate database tables -- use prefix naming such as ingestor-tablename
+6. Preserve raw data as much as possible, especially on the files saved on disk -- save raw jsons etc.
+6b. For very busy downloaders that might generate tons of disk space, discuss the merits of overriding the raw data rule
 
-### Conf file format
 
-- Whitespace-separated lines: `key value type` (tab or spaces).
-- Quote values that contain spaces: `"my value" str`.
-- Lists: `[a, b, c]` with optional type suffix.
-- Types: `str`, `int`, `float`, `bool`, `date`, `timestamp`, `path`, `filepath`, `list`.
-- Environment expansion via `$VAR` in values (`string.Template`).
-- CLI override: `-c key=value` when the process parses `sys.argv`.
+## Ingestors must care about being "complete" with regards to context information
 
-### `.local` files
+When data interpretation is context-sensitive, maintain parallel context tables to help in future access, for example:
+- The databento data tables use "symbol" to identify companies
+- But symbols may change meanings along time, for example *V* Vivendi until 2006, *V* Visa since 2008
+- Thus projects are required to keep context tables to help in retrieving backdated info, for example, in order to properly decode V depending on the date, we can keep a separate table with the Symbol-OpenFIGI equivalences for the dates.
+- As an example, the databento project refreshes openfigi-symbol tables by way of calling the openfigi project, so that a daily table with all symbols and their openfigi mappings are persisted. 
 
-- Override: sibling `conf/<name>.conf.local` (same format as base).
-- `CastedDict` loads base then `.local` when either exists under cwd, absolute path, or `sys.path`.
-- **Never commit** `*.local`, live `conf/*.conf` with secrets, or `.env`.
 
-### Secrets and keys in conf, not in code
-
-- API keys, passwords, connection strings, database names, and **table names** belong in conf (or conf keys that name tables), not in source or notebooks.
-- Document keys in `conf/*.example`; keep real values gitignored.
-- Typical `conf/db_credentials.conf` keys:
-
-| Key | Purpose |
-|-----|---------|
-| `service` **or** `database` / `host` / `user` / `password` / `port` | PostgreSQL connection |
-| `schema` | `search_path` (e.g. `public` or `project, public`) |
-| Project-specific table keys | e.g. `figi_mappings_table`, `quotes_current_table` |
-
-Loaded by `DatabaseCredentials` / `CastedDict` after the project passes a resolved credentials path.
-
-## Database
+## Databases
 
 Shared PostgreSQL policies below come from `openfigi/AGENTS.md` and `databento/AGENTS.md`. Project repos should link here and document only local table keys, modules, and cron.
 
-### Connection
 
-- Use `lib.db_connection.DatabaseCredentials(credentials_file=...)`.
-- **`credentials_file` is required** in `common` — each project defines `DEFAULT_*` in its own `_paths` / `conf_paths` module.
-- Supports `service=` (libpq) or discrete host/user/password fields; optional `db_opts`.
-- `set_schema` creates the first schema in `search_path` if needed, then `SET search_path`.
-- Use `.engine()` for pandas `to_sql()` (NullPool SQLAlchemy engine wrapping psycopg2).
-- Read connection and table names from `conf/db_credentials.conf` (+ optional `.local`) via `CastedDict` or a project `load_conf()` wrapper — never hardcode credentials, database names, or table names in source or notebooks.
-
-
-
-### Table naming in shared PostgreSQL
+### Table naming in Databases
 
 Each project that owns tables in a shared database uses a **mandatory prefix** on every table it creates. Names are configured in conf and validated before SQL interpolation.
 
@@ -140,21 +109,6 @@ Both tables carry a **`date`** column (`date` type): US equity **market calendar
 - Store raw values from data provider as much as possible
 - Always add a updated_timestamp column reflecting the time stamp of when the data was obtained by Parcosm and added to the database
 
-### Ingestors/ Downloaders ####
-
-Ingestors/Downloaders are modules that proactively download some data
-
-1. When possible, ingestors should save downloaded files onto their own folder in /data2/parcosm
-2. Ingestors files should follow roughly ingestor-YYYY-MM-DD-filename.xxx format
-2a. For multiple files per day ingestors use the structure ingestor_name/year/year-month/year-month-day/files-for-the-day
-2b. for single file per day ingestors use intestor_name/year
-
-3. Ingestors should be designed to restart safely, for example, if files for the day are found, skip them. 
-4. Ingestors may populate databases at the very end of their process or simmultaneously with each download
-5. Ingestors may populate database tables -- use prefix naming such as ingestor-tablename
-
-
-
 ### Calendar dates in database APIs (`YYYY-MM-DD`)
 
 - Day-scoped DB accessors take market/session dates as **`YYYY-MM-DD` strings** (e.g. `price_history(symbol, "2026-06-03")`, `get_p_id_as_of(symbol, "2026-06-03")`), aligned with the ``date`` column — not bare `datetime`, unless an API explicitly documents otherwise.
@@ -205,4 +159,63 @@ Each repo's `AGENTS.md` should:
 | PostgreSQL connection | `lib/db_connection.py` |
 
 Project-specific: `conf_paths`, `_paths`, domain DB modules, ingest, cron — remain in each application repo.
+
+-----------
+
+## Configuration Files Library
+
+### Read conf with `CastedDict` 
+
+- Load **all** project config through `CastedDict` (`lib/casted_dict.py` from `common` once migrated), never ad-hoc line parsing in application code.
+- Each project should expose a small path helper that resolves conf relative to the repo root and merges **`.local`** automatically:
+  - `openfigi._paths.load_conf("db_credentials.conf")` → `conf/<name>`
+  - `databento` / others: `lib/conf_paths.load_conf("conf/….conf")`
+- Prefer absolute paths from the helper so scripts work regardless of cwd.
+
+```python
+from lib.casted_dict import CastedDict
+
+# After migration: from lib.casted_dict import CastedDict  # via cursor-common dep
+conf = CastedDict("/abs/path/to/project/conf/db_credentials.conf")
+schema = conf["schema"]
+```
+
+### Conf file format
+
+- Whitespace-separated lines: `key value type` (tab or spaces).
+- Quote values that contain spaces: `"my value" str`.
+- Lists: `[a, b, c]` with optional type suffix.
+- Types: `str`, `int`, `float`, `bool`, `date`, `timestamp`, `path`, `filepath`, `list`.
+- Environment expansion via `$VAR` in values (`string.Template`).
+- CLI override: `-c key=value` when the process parses `sys.argv`.
+
+### `.local` files
+
+- Override: sibling `conf/<name>.conf.local` (same format as base).
+- `CastedDict` loads base then `.local` when either exists under cwd, absolute path, or `sys.path`.
+- **Never commit** `*.local`, live `conf/*.conf` with secrets, or `.env`.
+
+### Secrets and keys in conf, not in code
+
+- API keys, passwords, connection strings, database names, and **table names** belong in conf (or conf keys that name tables), not in source or notebooks.
+- Document keys in `conf/*.example`; keep real values gitignored.
+- Typical `conf/db_credentials.conf` keys:
+
+| Key | Purpose |
+|-----|---------|
+| `service` **or** `database` / `host` / `user` / `password` / `port` | PostgreSQL connection |
+| `schema` | `search_path` (e.g. `public` or `project, public`) |
+| Project-specific table keys | e.g. `figi_mappings_table`, `quotes_current_table` |
+
+Loaded by `DatabaseCredentials` / `CastedDict` after the project passes a resolved credentials path.
+
+
+### Database Connection Library
+
+- Use `lib.db_connection.DatabaseCredentials(credentials_file=...)`.
+- **`credentials_file` is required** in `common` — each project defines `DEFAULT_*` in its own `_paths` / `conf_paths` module.
+- Supports `service=` (libpq) or discrete host/user/password fields; optional `db_opts`.
+- `set_schema` creates the first schema in `search_path` if needed, then `SET search_path`.
+- Use `.engine()` for pandas `to_sql()` (NullPool SQLAlchemy engine wrapping psycopg2).
+- Read connection and table names from `conf/db_credentials.conf` (+ optional `.local`) via `CastedDict` or a project `load_conf()` wrapper — never hardcode credentials, database names, or table names in source or notebooks.
 
