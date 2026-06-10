@@ -29,7 +29,7 @@ Market data is one of the most sensitive parts of the Parcosm data architecture.
 
 ## Implementation Decisions
 
-### Providers/Ingestors
+### Data Providers/Ingestors
 
 ```
 Name          Project        Table_Prefix    Status Notes
@@ -41,6 +41,13 @@ OpenFigi      openfigi       ofigi           live   FIGI IDs, per symbol and per
 SEC           edgar          sec             live   Disclosures and filings, require open text parsing, always a work in progress
 ```
 
-### Data
+### Data Needs
+
+kind of data                        status
+historical closing values "ohlcv"   mostly available with some gaps (Marketdata /close, Databento "ohlcv") may require stitching multiple providers
+daily "intraday" values             availabe from databaento at 1m intervals, no historical coverage beyond 30 days
+
+
+
 
 
