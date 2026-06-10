@@ -1,21 +1,10 @@
 # Agent guide — cursor (shared contracts)
 
-Conventions for humans and coding agents across Parcosm projects under `~/cursor/`. This file lives in the **`common`** repo and describes patterns repeated in per-project `AGENTS.md` files (e.g. `openfigi`, `databento`). Each application repo should keep a short local `AGENTS.md` for project-specific table prefixes, modules, and cron — and link here for shared rules.
+Conventions for humans and coding agents across Parcosm projects. This file lives in the **`common`** repo and describes patterns repeated in per-project `AGENTS.md` files (e.g. `openfigi`, `databento`). Each application repo should keep a short local `AGENTS.md` for project-specific table prefixes, modules, and cron — and link here for shared rules.
 
-## Monorepo layout
+## Configuration Files
 
-| Location | Role |
-|----------|------|
-| `~/cursor/common/` | Shared `lib/` package (`CastedDict`, `DatabaseCredentials`) — installable as `cursor-common` |
-| `~/cursor/<project>/` | Application repos (`openfigi`, `databento`, `marketstack2`, `panopticon`, `wikipedia`, `edgar`, …) |
-| `<project>/conf/` | Tab-separated config (gitignored secrets + committed `*.example`) |
-| `<project>/lib/` | **Legacy:** duplicated utilities until migrated to `common`; project-only helpers stay here |
-
-Do not delete or rewrite sibling `lib/` copies until that project explicitly depends on `common` and tests pass.
-
-## Configuration
-
-### Read conf with `CastedDict` only
+### Read conf with `CastedDict` 
 
 - Load **all** project config through `CastedDict` (`lib/casted_dict.py` from `common` once migrated), never ad-hoc line parsing in application code.
 - Each project should expose a small path helper that resolves conf relative to the repo root and merges **`.local`** automatically:
@@ -73,14 +62,7 @@ Shared PostgreSQL policies below come from `openfigi/AGENTS.md` and `databento/A
 - Use `.engine()` for pandas `to_sql()` (NullPool SQLAlchemy engine wrapping psycopg2).
 - Read connection and table names from `conf/db_credentials.conf` (+ optional `.local`) via `CastedDict` or a project `load_conf()` wrapper — never hardcode credentials, database names, or table names in source or notebooks.
 
-### Experimentation mode
 
-When a project `AGENTS.md` marks **experimentation mode** (e.g. `openfigi`, `databento`):
-
-- **No** separate migration import pipeline for schema churn.
-- Schema is created or updated in application code at runtime (e.g. `_initialize_table()`, `_migrate_schema()`, module-level DDL in `db/*.py`).
-- When the schema changes, **recreate the database or drop tables** as needed — do not add heavy migration tooling unless the user explicitly requests it.
-- Check the project-local `AGENTS.md` for whether this applies.
 
 ### Table naming in shared PostgreSQL
 
@@ -122,7 +104,7 @@ Avoid row-by-row `INSERT` loops for non-trivial batch sizes. Large ETL scripts i
 When data is refreshed **daily or more often** and callers need a **fast path to the latest** value per key (symbol, ticker, etc.):
 
 - **Do** maintain a **separate current/snapshot table** (or `{base}_latest`, `*_current_table`) updated on each ingest.
-- **Do** keep **historical** rows in an append-only or date-keyed table (`*_history`, `{base}_daily`, event log).
+- **Do** keep **historical** rows in an append-only or date-keyed table (typically `*_all`).
 - **Do not** use an `is_current` boolean (or equivalent flag) on a single wide table as the primary access pattern.
 
 Rationale: point lookups and `most_recent`-style APIs stay indexed and simple; history stays append-only without flag maintenance.
@@ -142,8 +124,8 @@ No `is_current` column. Prefix `ofigi_` enforced on the base name.
 
 | Table | Role |
 |-------|------|
-| `*_history` | Append-only quote events; PK typically `(symbol, ts_recv)` |
-| `*_current` | Latest BBO per symbol; `most_recent(symbol)` / `get_current` |
+| `*_1m_(all, current)` | 1m quotes with timestamps provided by databento between 9:30 and 16:00 daily
+| `*_hist_(all,current)` | historical (closing) data publish by databento at midnight after closing
 
 Both tables carry a **`date`** column (`date` type): US equity **market calendar day** (`America/New_York` date of `ts_recv`), computed on ingest. Filter day-scoped history with `date`, not by converting stored timestamps to Eastern in application code.
 
@@ -152,6 +134,26 @@ Both tables carry a **`date`** column (`date` type): US equity **market calendar
 - Store live/vendor event times as **UTC** (`timestamptz`) — e.g. `ts_event`, `ts_recv` from nanosecond or ISO sources.
 - Add a **`date`** (`date` type) column where day-scoped queries matter; set it at ingest from the market calendar (not at read time).
 - How `psql` displays `timestamptz` depends on the client `TIME ZONE`; storage remains UTC.
+
+### Rules for storing data from data providers
+
+- Store raw values from data provider as much as possible
+- Always add a updated_timestamp column reflecting the time stamp of when the data was obtained by Parcosm and added to the database
+
+### Ingestors/ Downloaders ####
+
+Ingestors/Downloaders are modules that proactively download some data
+
+1. When possible, ingestors should save downloaded files onto their own folder in /data2/parcosm
+2. Ingestors files should follow roughly ingestor-YYYY-MM-DD-filename.xxx format
+2a. For multiple files per day ingestors use the structure ingestor_name/year/year-month/year-month-day/files-for-the-day
+2b. for single file per day ingestors use intestor_name/year
+
+3. Ingestors should be designed to restart safely, for example, if files for the day are found, skip them. 
+4. Ingestors may populate databases at the very end of their process or simmultaneously with each download
+5. Ingestors may populate database tables -- use prefix naming such as ingestor-tablename
+
+
 
 ### Calendar dates in database APIs (`YYYY-MM-DD`)
 
@@ -183,7 +185,7 @@ Both tables carry a **`date`** column (`date` type): US equity **market calendar
 
 ## Per-project agent guides
 
-After migration, each repo's `AGENTS.md` should:
+Each repo's `AGENTS.md` should:
 
 1. State what the project does and its module map.
 2. Link to this file for shared conf/DB/git rules.
@@ -203,14 +205,4 @@ After migration, each repo's `AGENTS.md` should:
 | PostgreSQL connection | `lib/db_connection.py` |
 
 Project-specific: `conf_paths`, `_paths`, domain DB modules, ingest, cron — remain in each application repo.
-
-### Ingestors/ Downloaders ####
-
-Ingestors/Downloaders are modules that proactively download some data
-
-1. When possible, ingestors should save downloaded files onto their own folder in /data2/parcosm
-2. For daily files, use the structure ingestor_name/year/year-month/year-month-day/files-for-the-day
-3. Ingestors should be designed to restart safely, for example, if files for the day are found, skip them. 
-4. Ingestors may populate databases at the very end of their process or simmultaneously with each download
-5. Ingestors may populate database tables -- use prefix naming such as ingestor-tablename
 
