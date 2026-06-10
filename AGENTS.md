@@ -19,7 +19,7 @@ Ingestors/Downloaders are modules that proactively download some data
 6b. For very busy downloaders that might generate tons of disk space, discuss the merits of overriding the raw data rule
 
 
-## Ingestors must care about being "complete" with regards to context information
+## Ingestors must care about pulling/syncing context information at ingestion time
 
 When data interpretation is context-sensitive, maintain parallel context tables to help in future access, for example:
 - The databento data tables use "symbol" to identify companies
@@ -56,6 +56,16 @@ Implement `sql_identifier()` / `project_table_identifier()` in each project's `c
 
 - Never interpolate unvalidated user input into identifiers.
 - Use validated identifiers for dynamic table/schema names.
+
+### Atomicity / Double Buffering
+
+Data must drop into the live database insuring atomicity, so that a process reading that data does not get conflicting records
+
+a) when simple enough, just ensure single transaction updates with BEGIN ... COMMIT
+b) for highly complex, large downloads (such as wikipedia) use the schema drop double buffering pattern:
+- populate new table versions on a working schema, in the background
+- when ready: BEGIN, move current tables to schema "recycling_bin", move new tables to schema "public", COMMIT
+  
 
 ### Bulk insertions
 
