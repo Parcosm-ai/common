@@ -22,7 +22,7 @@ Market data is one of the most sensitive parts of the Parcosm data architecture.
 
   - "IF x does not exist from vendor A, try B" 
 
-5. ** Data Adjustment Business Logic**  When splits and dividends occurr, backdated values may need to be adjusted wrt what they were at the time
+5. **Data Adjustment Business Logic**  When splits and dividends occurr, backdated values may need to be adjusted wrt what they were at the time
 
 6. **Access Layer** Data users, such as agents and apps, should retrieve the data via accessors, never querying the database directly. 
 
