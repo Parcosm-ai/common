@@ -22,7 +22,9 @@ Market data is one of the most sensitive parts of the Parcosm data architecture.
 
   - "IF x does not exist from vendor A, try B" 
 
-5. **Access Layer** Data users, such as agents and apps, should retrieve the data via accessors, never querying the database directly. 
+5. ** Data Adjustment Business Logic**  When splits and dividends occurr, backdated values may need to be adjusted wrt what they were at the time
+
+6. **Access Layer** Data users, such as agents and apps, should retrieve the data via accessors, never querying the database directly. 
 
 
 ## Implementation Decisions
@@ -30,10 +32,15 @@ Market data is one of the most sensitive parts of the Parcosm data architecture.
 ### Providers/Ingestors
 
 ```
-Name          Project        Table_Prefix    Notes
+Name          Project        Table_Prefix    Status Notes
 
-MarketStack   marketstack2   market_data     Closing data, splits and dividends, symbol-based, 20+ years historical coverage, unreliable, per-symbol download
-Databento     databento      dbento          Closing data, no splits, symbol-based, less history, more reliable, per-day download (all symbols)
-                                             Live Market Data including extended hours
-OpenFigi      openfigi       ofigi           FIGI IDs, per symbol and per date. 
+MarketStack   marketstack2   market_data     live   Closing data, splits and dividends, symbol-based, 20+ years historical coverage, unreliable, per-symbol download
+Databento     databento      dbento          live   Closing data, no splits, symbol-based, less history, more reliable, per-day download (all symbols)
+                                             live   Live Market Data including extended hours
+OpenFigi      openfigi       ofigi           live   FIGI IDs, per symbol and per date. 
+SEC           edgar          sec             live   Disclosures and filings, require open text parsing, always a work in progress
 ```
+
+### Data
+
+
