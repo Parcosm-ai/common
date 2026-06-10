@@ -31,8 +31,9 @@ Market data is one of the most sensitive parts of the Parcosm data architecture.
 
 ```
 Name          Project        Table_Prefix    Notes
+
 MarketStack   marketstack2   market_data     Closing data, splits and dividends, symbol-based, 20+ years historical coverage, unreliable, per-symbol download
 Databento     databento      dbento          Closing data, no splits, symbol-based, less history, more reliable, per-day download (all symbols)
                                              Live Market Data including extended hours
-
+OpenFigi      openfigi       ofigi           FIGI IDs, per symbol and per date. 
 ```
