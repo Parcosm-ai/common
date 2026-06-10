@@ -1,4 +1,4 @@
-# Agent guide — cursor (shared contracts)
+# Agent guide — Parcosm (shared contracts)
 
 Conventions for humans and coding agents across Parcosm projects. This file lives in the **`common`** repo and describes patterns repeated in per-project `AGENTS.md` files (e.g. `openfigi`, `databento`). Each application repo should keep a short local `AGENTS.md` for project-specific table prefixes, modules, and cron — and link here for shared rules.
 
