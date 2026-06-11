@@ -18,7 +18,7 @@ A clockwork of data ingestion, processing, storage and retrieval with the goal o
   - Databento US.MINI doesn't provide splits information
   - marketstack data for AAMI is 10 days behind
 
-2. **Proper ID**. The "symbol" used by MarketData as well as DataBento is ambiguous:
+2. **Proper ID**. The "symbol" used by markets is an ambiguous identifier. 
 
   - V is Visa since 2008, was Vivendi prior to 2006
 
