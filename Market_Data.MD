@@ -1,6 +1,15 @@
-# Market Data Architecture 
+# Market Data Overview
 
-Market data is one of the most sensitive parts of the Parcosm data architecture. 
+A clockwork of data ingestion, processing, storage and retrieval with the goal of providing data about financial markets, as described below. 
+
+## **Market Data Surfaced** For Analysis, Applications, MCP, APIs etc
+
+1. Historical: closing prices (adjusted or unadjusted) per company and date
+2. Intraday: prices during the day (typically unadjusted) per company and minute
+3. Shares out: Number of shares by company and date 
+4. Company identifiers (parcosm ID, symbol, figi, cusip, CIK, ...) by date
+5. Is market day? functions to tell if markets are open, when the last market day was, if a certain date was a market date etc. 
+6. Corporate actions (dividends, splits, shares emitted etc)
 
 ## Requirements
 
@@ -26,14 +35,6 @@ Market data is one of the most sensitive parts of the Parcosm data architecture.
 6. **Access Layer** Data users, such as agents and apps, should retrieve the data via accessors, never querying the database directly. 
 
 
-## **Market Data Surfaced** For Analysis, Applications, MCP, APIs etc
-
-1. Historical: closing prices (adjusted or unadjusted) per company and date
-2. Intraday: prices during the day (typically unadjusted) per company and minute
-3. Shares out: Number of shares by company and date 
-4. Company identifiers (parcosm ID, symbol, figi, cusip, CIK, ...) by date
-5. Is market day? functions to tell if markets are open, when the last market day was, if a certain date was a market date etc. 
-6. Corporate actions (dividends, splits, shares emitted etc)
 
 
 
