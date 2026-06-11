@@ -40,24 +40,21 @@ A clockwork of data ingestion, processing, storage and retrieval with the goal o
 
 ### Data Providers/Ingestors
 
-```
-Name          Project        Table_Prefix    Status Notes
-
-MarketStack   marketstack2   market_data     live   Closing data, splits and dividends, symbol-based, 20+ years historical coverage, unreliable, per-symbol download
-Databento     databento      dbento          live   Closing data, no splits, symbol-based, less history, more reliable, per-day download (all symbols)
-                                             live   Live Market Data including extended hours
-OpenFigi      openfigi       ofigi           live   FIGI IDs, per symbol and per date. 
-SEC           edgar          sec             live   Disclosures and filings, require open text parsing, always a work in progress
-```
+| Name | Project | Table prefix | Status | Notes |
+|------|---------|--------------|--------|-------|
+| MarketStack | marketstack2 | market_data | live | Closing data, splits and dividends, symbol-based, 20+ years historical coverage, unreliable, per-symbol download |
+| Databento | databento | dbento | live | Closing data, no splits, symbol-based, less history, more reliable, per-day download (all symbols) |
+| Databento | databento | dbento | live | Live Market Data including extended hours |
+| OpenFigi | openfigi | ofigi | live | FIGI IDs, per symbol and per date |
+| SEC | edgar | sec | live | Disclosures and filings, require open text parsing, always a work in progress |
 
 ### Data Needs
 
-```
-kind of data                        status
-historical closing values "ohlcv"   mostly available with some gaps (Marketdata /close, Databento "ohlcv") may require stitching multiple providers
-daily "intraday" values             available from databaento at 1m intervals, no historical coverage beyond 30 days
-shares out                          problematic. mostly 
-```
+| Kind of data | Status |
+|--------------|--------|
+| Historical closing values ("ohlcv") | mostly available with some gaps (Marketdata /close, Databento "ohlcv") may require stitching multiple providers |
+| Daily "intraday" values | available from databaento at 1m intervals, no historical coverage beyond 30 days |
+| Shares out | problematic. License/pricing limitations from DataBento. Unclear when disclosures get filed into SEC |
 
 
 
