@@ -1,6 +1,8 @@
 # Agent guide — Parcosm (shared contracts)
 
-Conventions for humans and coding agents across Parcosm projects. This file lives in the **`common`** repo and describes patterns repeated in per-project `AGENTS.md` files (e.g. `openfigi`, `databento`). Each application repo should keep a short local `AGENTS.md` for project-specific table prefixes, modules, and cron — and link here for shared rules.
+Conventions for humans and coding agents across Parcosm projects. 
+
+This file lives in the **`common`** repo and describes patterns repeated in per-project `AGENTS.md` files (e.g. `openfigi`, `databento`). Each application repo should keep a short local `AGENTS.md` for project-specific table prefixes, modules, and cron — and link here for shared rules.
 
 
 ### Ingestors/ Downloaders ####
@@ -18,6 +20,65 @@ Ingestors/Downloaders are modules that proactively download some data
 6. Preserve raw data as much as possible, especially on the files saved on disk -- save raw jsons etc.
 6b. For very busy downloaders that might generate tons of disk space, discuss the merits of overriding the raw data rule
 
+### Ingest and job status (shared `pcom_status_*` tables)
+
+Every **ingestor, downloader, and downstream analyzer** publishes operational status to a **single pair of tables** owned by the `common` project (`pcom_` prefix). Do not create per-project status tables.
+
+| Table | Role |
+|-------|------|
+| `pcom_status_all` | Append-only **event log** — one row per status transition (`running`, `failed`, `complete`, …) |
+| `pcom_status_latest` | **Snapshot** — one row per `(project, job_key)` for fast reads |
+
+Configure table names in `conf/db_credentials.conf` (optional; defaults above):
+
+| Key | Purpose |
+|-----|---------|
+| `status_all_table` | Event log table name (default `pcom_status_all`) |
+| `status_latest_table` | Snapshot table name (default `pcom_status_latest`) |
+
+**Publish at phase boundaries** (start, success, failure) — not per row of domain data. Use `lib.ingest_status.IngestStatusStore.publish_status()` so the event log and snapshot stay in sync inside one transaction.
+
+| Column (both tables where applicable) | Purpose |
+|---------------------------------------|---------|
+| `project` | Owning module, e.g. `wikipedia`, `databento`, `my_analysis` |
+| `job_key` | Stable job id within the project, e.g. `download`, `hist_close` |
+| `status` | `pending`, `running`, `complete`, `failed`, `skipped` |
+| `event_at` / `last_event_at` | When this event happened (UTC `timestamptz`) |
+| `last_success_at` | Snapshot only — last `complete` time; unchanged on `running` / `failed` |
+| `session_date` | Target calendar day (`date`) on successful completion when relevant |
+| `artifact_version` | Comparable id from last success (ISO date, build id, content hash) |
+| `message` | Human-readable text for dashboards |
+| `metadata` | Optional `jsonb` for paths, counts, error detail |
+| `updated_timestamp` | When Parcosm wrote the row |
+
+**Two “latest” meanings** (do not conflate):
+
+- `get_latest_status(project, job_key)` → current `status` and `last_event_at` (any transition).
+- `get_latest_completion(project, job_key)` → `last_success_at`, `session_date`, `artifact_version` from the last successful run.
+
+Listeners compare upstream `artifact_version` or `last_success_at` against their own cursor row (e.g. `project='my_app'`, `job_key='wikipedia_sync'`). Dashboards call `list_latest_statuses()` for a single-table overview.
+
+```python
+from lib.db_connection import DatabaseCredentials
+from lib.ingest_status import IngestStatusStore, STATUS_RUNNING, STATUS_COMPLETE
+
+db = DatabaseCredentials(credentials_file="/abs/path/to/conf/db_credentials.conf")
+store = IngestStatusStore.from_credentials(db)
+store.ensure_tables()
+
+store.publish_status("wikipedia", "download", STATUS_RUNNING, message="download in progress")
+store.publish_status(
+    "wikipedia",
+    "download",
+    STATUS_COMPLETE,
+    message="download 2026-06-02 complete",
+    session_date="2026-06-02",
+    artifact_version="2026-06-02",
+)
+
+latest = store.get_latest_status("wikipedia", "download")
+done = store.get_latest_completion("wikipedia", "download")
+```
 
 ## Ingestors must care about pulling/syncing context information at ingestion time
 
@@ -39,6 +100,7 @@ Each project that owns tables in a shared database uses a **mandatory prefix** o
 
 | Project | Prefix | Conf / pattern | Example tables |
 |---------|--------|----------------|----------------|
+| common | `pcom_` | `status_all_table`, `status_latest_table` | `pcom_status_all`, `pcom_status_latest` |
 | openfigi | `ofigi_` | `figi_mappings_table` → base name | `ofigi_mappings_daily`, `ofigi_mappings_latest` |
 | databento | `dbento_` | `quotes_history_table`, `quotes_current_table` | `dbento_quotes_history`, `dbento_quotes_current` |
 | (others) | per project `AGENTS.md` | … | … |
@@ -167,6 +229,7 @@ Each repo's `AGENTS.md` should:
 |---------|--------|
 | Typed conf loader | `lib/casted_dict.py` |
 | PostgreSQL connection | `lib/db_connection.py` |
+| Ingest / job status tables and accessors | `lib/ingest_status.py` |
 
 Project-specific: `conf_paths`, `_paths`, domain DB modules, ingest, cron — remain in each application repo.
 
@@ -215,6 +278,7 @@ schema = conf["schema"]
 |-----|---------|
 | `service` **or** `database` / `host` / `user` / `password` / `port` | PostgreSQL connection |
 | `schema` | `search_path` (e.g. `public` or `project, public`) |
+| `status_all_table` / `status_latest_table` | Shared ingest status tables (defaults `pcom_status_all`, `pcom_status_latest`) |
 | Project-specific table keys | e.g. `figi_mappings_table`, `quotes_current_table` |
 
 Loaded by `DatabaseCredentials` / `CastedDict` after the project passes a resolved credentials path.
