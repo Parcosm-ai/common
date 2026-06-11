@@ -52,11 +52,12 @@ SEC           edgar          sec             live   Disclosures and filings, req
 
 ### Data Needs
 
+```
 kind of data                        status
 historical closing values "ohlcv"   mostly available with some gaps (Marketdata /close, Databento "ohlcv") may require stitching multiple providers
 daily "intraday" values             available from databaento at 1m intervals, no historical coverage beyond 30 days
 shares out                          problematic. mostly 
-
+```
 
 
 
