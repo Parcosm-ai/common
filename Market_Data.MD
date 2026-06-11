@@ -17,7 +17,6 @@ Market data is one of the most sensitive parts of the Parcosm data architecture.
 
   - SpaceX "SPCX" going live on June 12 2026
 
-
 4. **Data Merging Business Logic**  As vendor data overlap and may contradict each other, there must be clear logic (code) to retrieve the preferred one and handle failures and gaps
 
   - "IF x does not exist from vendor A, try B" 
@@ -27,7 +26,16 @@ Market data is one of the most sensitive parts of the Parcosm data architecture.
 6. **Access Layer** Data users, such as agents and apps, should retrieve the data via accessors, never querying the database directly. 
 
 
-## Implementation Decisions
+## **Market Data Surfaced** For Analysis, Applications, MCP, APIs etc
+
+1. Historical: closing prices (adjusted or unadjusted) per company and date
+2. Intraday: prices during the day (typically unadjusted) per company and minute
+3. Shares out: Number of shares by company and date 
+4. Company identifiers (parcosm ID, symbol, figi, cusip, CIK, ...) by date
+5. Is market day? functions to tell if markets are open, when the last market day was, if a certain date was a market date etc. 
+6. Corporate actions (dividends, splits, shares emitted etc)
+
+
 
 ### Data Providers/Ingestors
 
@@ -45,7 +53,8 @@ SEC           edgar          sec             live   Disclosures and filings, req
 
 kind of data                        status
 historical closing values "ohlcv"   mostly available with some gaps (Marketdata /close, Databento "ohlcv") may require stitching multiple providers
-daily "intraday" values             availabe from databaento at 1m intervals, no historical coverage beyond 30 days
+daily "intraday" values             available from databaento at 1m intervals, no historical coverage beyond 30 days
+shares out                          problematic. mostly 
 
 
 
