@@ -186,6 +186,24 @@ Both tables carry a **`date`** column (`date` type): US equity **market calendar
 - Day-scoped DB accessors take market/session dates as **`YYYY-MM-DD` strings** (e.g. `price_history(symbol, "2026-06-03")`, `get_p_id_as_of(symbol, "2026-06-03")`), aligned with the ``date`` column — not bare `datetime`, unless an API explicitly documents otherwise.
 - Parse at module boundaries with project helpers (`parse_session_date()`, `SESSION_DATE_FMT`, etc.).
 
+## Agent and tool configuration files
+
+Prefer **vendor-agnostic names** for agent instructions and skill definitions so they are readable by any tool.
+
+| Purpose | Preferred | Avoid |
+|---------|-----------|-------|
+| Agent instructions / rules | `AGENTS.md` | `CLAUDE.md`, `.cursorrules`, `copilot-instructions.md` |
+| Skill / command definitions | `.agents/commands/<skill>.md` | `.claude/commands/`, `.cursor/commands/` |
+| Machine-local tool settings | vendor directory is fine (e.g. `.claude/settings.local.json`) | — |
+
+**Rules:**
+
+- Every repo's agent instructions live in `AGENTS.md` at the root (and link to `common/AGENTS.md`).
+- Reusable skills (install, configure, run, etc.) are `.md` files under `.agents/commands/`.  
+  Tool-specific directories (`.claude/commands/`) may symlink to `.agents/commands/` so native slash-command lookup still works — the canonical source stays in `.agents/`.
+- Vendor-specific tooling config (e.g. `.claude/settings.local.json`, `.vscode/settings.json`) is fine where it must live; only *content files* (instructions, skills) should be kept vendor-agnostic.
+- Never create a `CLAUDE.md` when `AGENTS.md` serves the same purpose.
+
 ## Git and commits
 
 - **Commit:** `conf/*.example`, application code, tests, docs without secrets.
