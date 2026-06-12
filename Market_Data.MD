@@ -58,5 +58,13 @@ A clockwork of data ingestion, processing, storage and retrieval with the goal o
 | Historical FIGI mappings | problematic. We may need a TSV with hand-coded exceptions if a data provider can't be found |
 
 
+## Implementation
+
+### Ingestor Status
+
+1. **Marketsack Ingestor** Existing: Github marketstack2. Crontab. Obtains daily closing data after midnight. Table prefix market_data
+2. **DataBento Ingestor** Existing: Github databento. Crontab. Obtains daily closing data after midnight and live minute-by-minute quotes during market hours. Table prefix dbento
+3. **OpenFigi Ingestor** Existing: GitHub openfigi. On-Demand. Fetches FIGI Ids and saves them in database table. You must call it to refresh the mapping every day. Table prefix ofigi
+
 
 
