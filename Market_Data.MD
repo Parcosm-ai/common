@@ -55,6 +55,7 @@ A clockwork of data ingestion, processing, storage and retrieval with the goal o
 | Historical closing values ("ohlcv") | mostly available with some gaps (Marketdata /close, Databento "ohlcv") may require stitching multiple providers |
 | Daily "intraday" values | available from databaento at 1m intervals, no historical coverage beyond 30 days |
 | Shares out | problematic. License/pricing limitations from DataBento. Unclear when disclosures get filed into SEC |
+| Historical FIGI mappings | problematic. We may need a TSV with hand-coded exceptions if a data provider can't be found |
 
 
 
