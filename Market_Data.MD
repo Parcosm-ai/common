@@ -75,15 +75,15 @@ NOTE: both markestack & databento ingestors call openfigi to make sure the symbo
 
 ## Data Stitching Logic (stub)
 
-1. get (closing) for (parcosm id) from date1 to date2, adjusted:
+1. TO get (closing) for (parcosm id) from date1 to date2, adjusted:
 
-  1. for each data provider for (closing):
+    1. for each data provider for (closing):
 
-    1. find mapping(s) to data provider indexing (e.g. symbol) 
+        1. find mapping(s) to data provider indexing (e.g. symbol) 
 
-       - for example: Parcosm ID "111" 
-         --> Marketstack "SPCK" (from 2026-05-01) "SPCX" (pre 2026-05-01)
-         --> DataBento "SPCK" (from 2026-05-01)
+            - for example: Parcosm ID "111" 
+           - -> Marketstack "SPCK" (from 2026-05-01) "SPCX" (pre 2026-05-01)
+           - -> DataBento "SPCK" (from 2026-05-01)
 
     2. identify date ranges available in our database using the mappings above
 
@@ -95,6 +95,5 @@ NOTE: both markestack & databento ingestors call openfigi to make sure the symbo
 
       - if split data available, match it against the data
 
-      - identify suspicious points (what to do? ignore or wild guess?) 
+      - identify suspicious points (what to do? ignore or wild guess? or return "no data"?) 
 
-      
