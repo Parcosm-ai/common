@@ -91,7 +91,7 @@ NOTE: both markestack & databento ingestors call openfigi to make sure the symbo
 
         3. retrieve the data matching dates requested with preferred providers
 
-            - for example: use  Databento for 2026-05-01 to data2, fall back to marketdata for date1 - 2026-04-30
+            - for example: use  Databento for 2026-05-01 to date2, fall back to marketdata for date1 - 2026-04-30
 
         4. apply adjustments (if requested)
 
