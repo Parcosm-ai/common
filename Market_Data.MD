@@ -87,9 +87,11 @@ NOTE: both markestack & databento ingestors call openfigi to make sure the symbo
 
         2. identify date ranges available in our database using the mappings above
 
+           - example: marketstack tables have this data from 2001 to present day, databento tables from 2026-05-01 to today
+
         3. retrieve the data matching dates requested with preferred providers
 
-            - for example: use  Databento for 2026-05-01 onwards, fall back to marketdata for earlier dates
+            - for example: use  Databento for 2026-05-01 to data2, fall back to marketdata for date1 - 2026-04-30
 
         4. apply adjustments (if requested)
 
