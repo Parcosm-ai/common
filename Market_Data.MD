@@ -79,7 +79,7 @@ NOTE: both markestack & databento ingestors call openfigi to make sure the symbo
 
     1. for each data provider for (closing):
 
-        1. find mapping(s) to data provider indexing (e.g. symbol) 
+        1. find mapping(s) from parcosm id to data provider's own indexing (e.g. symbol) 
 
             - for example: Parcosm ID "111" 
            - -> Marketstack "SPCK" (from 2026-05-01) "SPCX" (pre 2026-05-01)
