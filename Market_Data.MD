@@ -64,6 +64,7 @@ A clockwork of data ingestion, processing, storage and retrieval with the goal o
 2. Clean Data Tables  - These to be created to reflect Parcosm's ground truth. 
 3. Accessors - used by apps & agents, see *Market Data Surfaced** section. 
 
+
 ## Ingestor Status
 
 1. **Marketsack Ingestor** Existing: Github marketstack2. Crontab. Obtains daily closing data after midnight. Table prefix market_data
@@ -72,5 +73,28 @@ A clockwork of data ingestion, processing, storage and retrieval with the goal o
 
 NOTE: both markestack & databento ingestors call openfigi to make sure the symbols we receive from this providers are refreshed on our openfigi tables. 
 
+## Data Stitching Logic (stub)
 
+1. get (closing) for (parcosm id) from date1 to date2, adjusted:
 
+  1. for each data provider for (closing):
+
+    1. find mapping(s) to data provider indexing (e.g. symbol) 
+
+       - for example: Parcosm ID "111" 
+         --> Marketstack "SPCK" (from 2026-05-01) "SPCX" (pre 2026-05-01)
+         --> DataBento "SPCK" (from 2026-05-01)
+
+    2. identify date ranges available in our database using the mappings above
+
+    3. retrieve the data matching dates requested with preferred providers
+
+      - for example: use  Databento for 2026-05-01 onwards, fall back to marketdata for earlier dates
+
+    4. apply adjustments (if requested)
+
+      - if split data available, match it against the data
+
+      - identify suspicious points (what to do? ignore or wild guess?) 
+
+      
