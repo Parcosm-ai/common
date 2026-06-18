@@ -97,5 +97,7 @@ NOTE: both markestack & databento ingestors call openfigi to make sure the symbo
 
             - if split data available, match it against the data
 
+                * (currently with Marketstack's split_factor, we only apply if it matches the data, otherwise we ignore it. But we are not *guessing* from discontinuities in the price history, if we don't have a matching split_factor entry.) 
+
             - identify suspicious points (what to do? ignore or wild guess? or return "no data"?) 
 
