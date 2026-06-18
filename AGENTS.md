@@ -16,9 +16,11 @@ Ingestors/Downloaders are modules that proactively download some data
 
 3. Ingestors should be designed to restart safely, for example, if files for the day are found, skip them. 
 4. Ingestors may populate databases either at the very end of their process or simmultaneously with each download
-5. Ingestors may populate database tables -- use prefix naming such as ingestor-tablename
+5. Ingestors may populate database tables -- use prefix naming such as ingestor_tablename
 6. Preserve raw data as much as possible, especially on the files saved on disk -- save raw jsons etc.
 6b. For very busy downloaders that might generate tons of disk space, discuss the merits of overriding the raw data rule
+7. Always save the timestamp of the download and add a column updated_timestamp to the database tables
+ - So in addition to any provider timestamps or date information (e.g. "this is the AAPL closing value for 2016-01-01") we also have the  "this is the exact date and time when our data provider said so" 
 
 ### Ingest and job status (shared `pcom_status_*` tables)
 
