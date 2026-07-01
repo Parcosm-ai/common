@@ -19,8 +19,38 @@ Ingestors/Downloaders are modules that proactively download some data
 5. Ingestors may populate database tables -- use prefix naming such as ingestor_tablename
 6. Preserve raw data as much as possible, especially on the files saved on disk -- save raw jsons etc.
 6b. For very busy downloaders that might generate tons of disk space, discuss the merits of overriding the raw data rule
+6c. **Capture-at-discovery for signed/expiring URLs.** When a source serves a raw asset behind a *signed, time-limited, session-scoped, or CDN-expiring* URL (media/audio, presigned S3-style links, one-shot download tokens), download and persist the asset the **instant the URL resolves** — in the SAME step that discovers it. Do NOT defer the download behind later processing (queueing, a separate transcribe/parse stage, the next cron run): the URL expires and the asset is gone, often silently. If capture and heavy processing must be separate stages, split them so *capture* runs first and independently (e.g. bank the audio now, transcribe later). Learned the hard way on earnings-call webcasts — a whole retroactive quarter was lost to replay-window expiry before we moved capture to discovery time.
 7. Always save the timestamp of the download and add a column updated_timestamp to the database tables
  - So in addition to any provider timestamps or date information (e.g. "this is the AAPL closing value for 2016-01-01") we also have the  "this is the exact date and time when our data provider said so" 
+
+### Data-quality guardrails (detect, quarantine — don't silent-delete)
+
+Real-world sources fail in *silent, recurring classes*, not just loud errors. Ad-hoc one-off fixes
+don't hold — the same class recurs next run. Two shared rules:
+
+1. **Every data-quality failure class becomes a PERMANENT, automated detection stage** in the
+   pipeline (a wired-in check that runs every pass), not a manual clean-up you do once. When you
+   discover a new way the data can be wrong, ship the *detector* alongside the fix. Classes seen
+   repeatedly (build a guard for each as they appear):
+   - **Duplicate content across periods** — the same record content attributed to ≥2 distinct
+     periods of the same entity (e.g. one transcript/file replicated across quarters because an
+     adapter fell back to a prior-period URL). Byte-identical content across distinct periods is
+     provably wrong.
+   - **Future-dated records** — a record whose event date is in the future can't have really
+     occurred; content on it is a dup/mislabel/mis-date. A future-dated "ready" record is always a
+     DQ signal.
+   - **Wrong-entity / wrong-type content** — the captured artifact isn't the intended entity or type
+     (a different filing, a conference vs the earnings call). Validate the artifact IS what the row
+     claims, at every step; prefer capturing **nothing** over capturing wrong content.
+
+2. **Quarantine, never silent-delete.** A row that fails a guard (or is uncertain) is NOT deleted
+   and NOT dropped from the raw tables. Mark it with a **confidence flag** (e.g. `content_confidence
+   = 'low'`) plus a **machine-readable reason** (e.g. `pending_reason = 'duplicate_content'`,
+   `'future_dated'`), and EXCLUDE it from the "ready"/ground-truth/accessor views via that flag.
+   This keeps the decision **reversible and auditable** — a later good capture reclaims the row, and
+   you can always see *why* something was withheld. Correctness beats idempotency: when a better
+   version of a record arrives, replace the worse one rather than preserving the stale row for
+   idempotency's sake.
 
 ### Ingest and job status (shared `pcom_status_*` tables)
 
